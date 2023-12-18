@@ -1,0 +1,41 @@
+<body>
+    <!-- Other HTML elements -->
+
+    <table id="grid"></table>
+
+    <script type="module">
+        import init, { Universe } from '../pkg/game_of_life.js';
+
+        async function run() {
+            await init(); // Initialize the wasm module
+
+            let universe = Universe.new(); // Create a new Universe
+
+            // Get the grid element
+            let grid = document.getElementById('grid');
+
+            // Update the universe and the grid every 100ms
+            setInterval(() => {
+                universe.tick(); // Update the universe
+
+                // Create a new grid based on the universe's cells
+                let newGrid = document.createElement('table');
+                for (let i = 0; i < universe.height(); i++) {
+                    let row = document.createElement('tr');
+                    for (let j = 0; j < universe.width(); j++) {
+                        let cell = document.createElement('td');
+                        cell.textContent = universe.get_cell(i, j) ? '1' : '0';
+                        row.appendChild(cell);
+                    }
+                    newGrid.appendChild(row);
+                }
+
+                // Replace the old grid with the new one
+                grid.replaceWith(newGrid);
+                grid = newGrid;
+            }, 100);
+        }
+
+        run();
+    </script>
+</body>
