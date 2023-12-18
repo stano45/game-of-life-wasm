@@ -17,12 +17,12 @@
     <table id="grid"></table>
 
     <script type="module">
-        import init, { Universe } from '../pkg/game_of_life.js';
+        import init, { Universe, Implementation } from '../pkg/game_of_life.js';
 
         async function run() {
             await init();
 
-            let universe = Universe.new(40,40); // Create a new Universe
+            let universe = Universe.new(256, 256, Implementation.Naive); // Create a new Universe
 
             // Get the grid element
             let grid = document.getElementById('grid');
