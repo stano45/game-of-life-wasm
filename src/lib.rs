@@ -22,10 +22,7 @@ pub struct Universe {
 
 #[wasm_bindgen]
 impl Universe {
-    pub fn new() -> Universe {
-        let width = 20;
-        let height = 20;
-
+    pub fn new(width: u32, height: u32) -> Universe {
         let cells = {
             let mut rng = rand::thread_rng();
             (0..width * height)

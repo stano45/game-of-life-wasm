@@ -1,5 +1,18 @@
 <body>
-    <!-- Other HTML elements -->
+    <style>
+        #grid {
+            border-collapse: collapse;
+        }
+        #grid td {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        #grid .alive {
+            background-color: #444;
+        }
+    </style>
 
     <table id="grid"></table>
 
@@ -7,9 +20,9 @@
         import init, { Universe } from '../pkg/game_of_life.js';
 
         async function run() {
-            await init(); // Initialize the wasm module
+            await init();
 
-            let universe = Universe.new(); // Create a new Universe
+            let universe = Universe.new(40,40); // Create a new Universe
 
             // Get the grid element
             let grid = document.getElementById('grid');
@@ -20,11 +33,15 @@
 
                 // Create a new grid based on the universe's cells
                 let newGrid = document.createElement('table');
+                newGrid.id = 'grid';
                 for (let i = 0; i < universe.height(); i++) {
                     let row = document.createElement('tr');
                     for (let j = 0; j < universe.width(); j++) {
                         let cell = document.createElement('td');
-                        cell.textContent = universe.get_cell(i, j) ? '1' : '0';
+                        // cell.textContent = universe.get_cell(i, j) ? '1' : '0';
+                        if (universe.get_cell(i, j)) {
+                            cell.classList.add('alive');
+                        }
                         row.appendChild(cell);
                     }
                     newGrid.appendChild(row);
@@ -33,7 +50,7 @@
                 // Replace the old grid with the new one
                 grid.replaceWith(newGrid);
                 grid = newGrid;
-            }, 100);
+            }, 1);
         }
 
         run();
