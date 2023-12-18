@@ -1,4 +1,5 @@
 use wasm_bindgen::prelude::*;
+use rand::Rng;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -24,13 +25,13 @@ impl Universe {
     pub fn new() -> Universe {
         let width = 20;
         let height = 20;
-        let cells = (0..width * height)
-            .map(|i| {
-                let x = i % width;
-                let y = i / width;
-                (x == y || x == width - y) && x % 2 == 0 && y % 2 == 0
-            })
-            .collect();
+
+        let cells = {
+            let mut rng = rand::thread_rng();
+            (0..width * height)
+                .map(|_| rng.gen::<bool>())
+                .collect()
+        };
 
         Universe {
             width,
