@@ -1,18 +1,34 @@
-<body>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game of Life</title>
     <style>
-        #grid {
-            border-collapse: collapse;
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
         }
-        #grid td {
-            width: 20px;
-            height: 20px;
+        #grid {
+            display: grid;
+            width: 80vmin;
+            height: 80vmin;
             border: 1px solid #ddd;
-            text-align: center;
+        }
+        #grid div {
+            border: 1px solid #ddd;
         }
         #grid .alive {
             background-color: #444;
         }
     </style>
+</head>
+<body>
+    <label for="implementation">Implementation:</label>
 
     <select id="implementation">
         <option value="Parallel">Parallel</option>
@@ -20,9 +36,15 @@
         <option value="HashSet">HashSet</option>
     </select>
 
+    <label for="width">Width:</label>
+    <input type="number" id="width" min="1" value="50">
+
+    <label for="height">Height:</label>
+    <input type="number" id="height" min="1" value="50">
+
     <p>Time for last update: <span id="time"></span>ms</p>
 
-    <table id="grid"></table>
+    <div id="grid"></div>
 
     <script type="module">
         import init, { Universe, Implementation } from '../pkg/game_of_life.js';
@@ -34,15 +56,23 @@
             await init();
 
             let implementationSelect = document.getElementById('implementation');
+            let widthInput = document.getElementById('width');
+            let heightInput = document.getElementById('height');
             let timeDisplay = document.getElementById('time');
 
-            implementationSelect.addEventListener('change', () => {
+            function createUniverse() {
                 clearInterval(timerId); // Stop the old timer
-                universe = Universe.new(50, 50, Implementation[implementationSelect.value]); // Create a new Universe
+                let width = parseInt(widthInput.value, 10);
+                let height = parseInt(heightInput.value, 10);
+                universe = Universe.new(width, height, Implementation[implementationSelect.value]); // Create a new Universe
                 startTimer(); // Start a new timer
-            });
+            }
 
-            universe = Universe.new(50, 50, Implementation[implementationSelect.value]); // Create a new Universe
+            implementationSelect.addEventListener('change', createUniverse);
+            widthInput.addEventListener('change', createUniverse);
+            heightInput.addEventListener('change', createUniverse);
+
+            createUniverse();
 
             function startTimer() {
                 timerId = setInterval(() => {
@@ -51,18 +81,20 @@
                     universe.tick(); // Update the universe
 
                     // Create a new grid based on the universe's cells
-                    let newGrid = document.createElement('table');
+                    let newGrid = document.createElement('div');
                     newGrid.id = 'grid';
+                    newGrid.style.gridTemplateColumns = `repeat(${universe.width()}, 1fr)`;
+                    newGrid.style.gridTemplateRows = `repeat(${universe.height()}, 1fr)`;
+                    newGrid.style.width = `${80 * universe.width() / Math.max(universe.width(), universe.height())}vmin`;
+                    newGrid.style.height = `${80 * universe.height() / Math.max(universe.width(), universe.height())}vmin`;
                     for (let i = 0; i < universe.height(); i++) {
-                        let row = document.createElement('tr');
                         for (let j = 0; j < universe.width(); j++) {
-                            let cell = document.createElement('td');
+                            let cell = document.createElement('div');
                             if (universe.get_cell(i, j)) {
                                 cell.classList.add('alive');
                             }
-                            row.appendChild(cell);
+                            newGrid.appendChild(cell);
                         }
-                        newGrid.appendChild(row);
                     }
 
                     // Replace the old grid with the new one
@@ -71,7 +103,7 @@
 
                     let endTime = performance.now();
                     timeDisplay.textContent = (endTime - startTime).toFixed(2);
-                }, 100);
+                }, 1);
             }
 
             startTimer();
@@ -80,3 +112,4 @@
         run();
     </script>
 </body>
+</html>
