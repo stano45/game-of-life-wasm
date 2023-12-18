@@ -14,43 +14,67 @@
         }
     </style>
 
+    <select id="implementation">
+        <option value="Parallel">Parallel</option>
+        <option value="Naive">Naive</option>
+        <option value="HashSet">HashSet</option>
+    </select>
+
+    <p>Time for last update: <span id="time"></span>ms</p>
+
     <table id="grid"></table>
 
     <script type="module">
         import init, { Universe, Implementation } from '../pkg/game_of_life.js';
 
+        let universe;
+        let timerId;
+
         async function run() {
             await init();
 
-            let universe = Universe.new(256, 256, Implementation.Naive); // Create a new Universe
+            let implementationSelect = document.getElementById('implementation');
+            let timeDisplay = document.getElementById('time');
 
-            // Get the grid element
-            let grid = document.getElementById('grid');
+            implementationSelect.addEventListener('change', () => {
+                clearInterval(timerId); // Stop the old timer
+                universe = Universe.new(50, 50, Implementation[implementationSelect.value]); // Create a new Universe
+                startTimer(); // Start a new timer
+            });
 
-            // Update the universe and the grid every 100ms
-            setInterval(() => {
-                universe.tick(); // Update the universe
+            universe = Universe.new(50, 50, Implementation[implementationSelect.value]); // Create a new Universe
 
-                // Create a new grid based on the universe's cells
-                let newGrid = document.createElement('table');
-                newGrid.id = 'grid';
-                for (let i = 0; i < universe.height(); i++) {
-                    let row = document.createElement('tr');
-                    for (let j = 0; j < universe.width(); j++) {
-                        let cell = document.createElement('td');
-                        // cell.textContent = universe.get_cell(i, j) ? '1' : '0';
-                        if (universe.get_cell(i, j)) {
-                            cell.classList.add('alive');
+            function startTimer() {
+                timerId = setInterval(() => {
+                    let startTime = performance.now();
+
+                    universe.tick(); // Update the universe
+
+                    // Create a new grid based on the universe's cells
+                    let newGrid = document.createElement('table');
+                    newGrid.id = 'grid';
+                    for (let i = 0; i < universe.height(); i++) {
+                        let row = document.createElement('tr');
+                        for (let j = 0; j < universe.width(); j++) {
+                            let cell = document.createElement('td');
+                            if (universe.get_cell(i, j)) {
+                                cell.classList.add('alive');
+                            }
+                            row.appendChild(cell);
                         }
-                        row.appendChild(cell);
+                        newGrid.appendChild(row);
                     }
-                    newGrid.appendChild(row);
-                }
 
-                // Replace the old grid with the new one
-                grid.replaceWith(newGrid);
-                grid = newGrid;
-            }, 1);
+                    // Replace the old grid with the new one
+                    let grid = document.getElementById('grid');
+                    grid.replaceWith(newGrid);
+
+                    let endTime = performance.now();
+                    timeDisplay.textContent = (endTime - startTime).toFixed(2);
+                }, 100);
+            }
+
+            startTimer();
         }
 
         run();

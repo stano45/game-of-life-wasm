@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use wasm_timer::Instant;
 use wasm_bindgen::prelude::*;
 use rand::Rng;
+use rayon_wasm::prelude::*;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -83,9 +84,11 @@ impl Universe {
         self.cells_hashset.contains(&(row, col))
     }
 
-    pub fn get_cell_parallel(&self, _row: u32, _col: u32) -> bool {
-        // ... parallelized computation using rayon ...
-        false
+    pub fn get_cell_parallel(&self, row: u32, col: u32) -> bool {
+        // Parallelize the computation across the cells vector using rayon
+        self.cells.par_iter()
+            .enumerate()
+            .any(|(i, &cell)| cell && i == (row * self.width + col) as usize)
     }
     
     pub fn tick(&mut self) {
@@ -96,7 +99,7 @@ impl Universe {
             Implementation::Parallel => self.tick_parallel(),
         }
         let duration = start.elapsed();
-        log::info!("Tick took {} milliseconds", duration.as_millis());
+        log::info!("Tick took {} ms", duration.as_millis());
     }
 
     pub fn tick_naive(&mut self) {
@@ -150,8 +153,28 @@ impl Universe {
     }
 
     fn tick_parallel(&mut self) {
-        // ... parallelized computation using rayon ...
-        // TODO: implement
+        let cells = &self.cells;
+        let width = self.width;
+        let height = self.height;
+    
+        // Parallelize the computation across the cells vector using rayon
+        self.cells = (0..height * width)
+            .into_par_iter()
+            .map(|i| {
+                let x = (i % width) as u32;
+                let y = (i / width) as u32;
+                let cell = cells[i as usize];
+                let live_neighbors = self.live_neighbor_count(x, y);
+    
+                match (cell, live_neighbors) {
+                    (true, x) if x < 2 => false,
+                    (true, 2) | (true, 3) => true,
+                    (true, x) if x > 3 => false,
+                    (false, 3) => true,
+                    (otherwise, _) => otherwise,
+                }
+            })
+            .collect();
     }
 
     fn live_neighbor_count(&self, x: u32, y: u32) -> u8 {
