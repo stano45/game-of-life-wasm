@@ -102,6 +102,7 @@ impl Universe {
     
         for _ in 0..iterations {
             next_fn(self);
+            
         }
     
         let duration = start.elapsed();
@@ -109,31 +110,27 @@ impl Universe {
     }
 
     fn next_naive(&mut self) {
-        let mut next = self.cells.clone();
-
+        let mut next = vec![false; (self.width * self.height) as usize];
         for y in 0..self.height {
             for x in 0..self.width {
                 let idx = (y * self.width + x) as usize;
                 let cell = self.cells[idx];
-                let live_neighbors = self.live_neighbor_count(x, y);
+                let live_neighbors = self.live_neighbor_count_array(x, y);
 
-                next[idx] = match (cell, live_neighbors) {
-                    (true, x) if x < 2 => false,
-                    (true, 2) | (true, 3) => true,
-                    (true, x) if x > 3 => false,
-                    (false, 3) => true,
-                    (otherwise, _) => otherwise,
-                };
+                next[idx] = matches!(
+                    (cell, live_neighbors),
+                    (true, 2) | (true, 3) | (false, 3)
+                );
             }
         }
-
         self.cells = next;
+        println!();
     }
 
     fn next_hashset(&mut self) {
         let mut next = HashSet::new();
         let mut to_check: HashSet<(u32, u32)> = HashSet::new();
-    
+
         // Populate to_check with all cells that are alive and their neighbors
         for &(x, y) in self.cells_hashset.iter() {
             for delta_y in [self.height - 1, 0, 1].iter().cloned() {
@@ -141,7 +138,7 @@ impl Universe {
                     if delta_y == 0 && delta_x == 0 {
                         continue;
                     }
-    
+
                     let neighbor_x = (x + delta_x) % self.width;
                     let neighbor_y = (y + delta_y) % self.height;
                     to_check.insert((neighbor_x, neighbor_y));
@@ -149,16 +146,16 @@ impl Universe {
             }
             to_check.insert((x, y)); // Include the cell itself to be checked
         }
-    
+
         // Check each cell in to_check to determine if it should be alive in the next state
         for (x, y) in to_check {
-            let live_neighbors = self.live_neighbor_count(x, y);
+            let live_neighbors = self.live_neighbor_count_hashset(x, y);
             let cell_alive = self.cells_hashset.contains(&(x, y));
             if (cell_alive && (live_neighbors == 2 || live_neighbors == 3)) || (!cell_alive && live_neighbors == 3) {
                 next.insert((x, y));
             }
         }
-    
+
         self.cells_hashset = next;
     }
 
@@ -173,7 +170,7 @@ impl Universe {
                 let x = (i % width) as u32;
                 let y = (i / width) as u32;
                 let cell = cells[i as usize];
-                let live_neighbors = self.live_neighbor_count(x, y);
+                let live_neighbors = self.live_neighbor_count_array(x, y);
 
                 match (cell, live_neighbors) {
                     (true, x) if x < 2 => false,
@@ -186,7 +183,26 @@ impl Universe {
             .collect();
     }
 
-    fn live_neighbor_count(&self, x: u32, y: u32) -> u8 {
+    fn live_neighbor_count_array(&self, x: u32, y: u32) -> u8 {
+        let mut count = 0;
+        for delta_y in [self.height.wrapping_sub(1), 0, 1] {
+            for delta_x in [self.width.wrapping_sub(1), 0, 1] {
+                if delta_y == 0 && delta_x == 0 {
+                    continue;
+                }
+    
+                let neighbor_x = (x + delta_x) % self.width;
+                let neighbor_y = (y + delta_y) % self.height;
+                let idx = (neighbor_y * self.width + neighbor_x) as usize;
+                if self.cells[idx] {
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
+
+    fn live_neighbor_count_hashset(&self, x: u32, y: u32) -> u8 {
         let mut count = 0;
         for delta_y in [self.height.wrapping_sub(1), 0, 1].iter().cloned() {
             for delta_x in [self.width.wrapping_sub(1), 0, 1].iter().cloned() {
@@ -208,27 +224,52 @@ impl Universe {
 
 fn write_state_to_file(universe: &Universe, file_path: &str, iterations: u32) -> io::Result<()> {
     let mut file = File::create(file_path)?;
-    
+
     // Write width, height, and number of iterations as the first line
     writeln!(file, "{} {} {}", universe.width, universe.height, iterations)?;
 
-    for y in 0..universe.height {
-        for x in 0..universe.width {
-            let symbol = if universe.cells[(y * universe.width + x) as usize] {
-                'O'
-            } else {
-                '.'
-            };
-            write!(file, "{}", symbol)?;
+    match universe.implementation {
+        Implementation::HashSet => {
+            for y in 0..universe.height {
+                for x in 0..universe.width {
+                    let symbol = if universe.cells_hashset.contains(&(x, y)) {
+                        'O'
+                    } else {
+                        '.'
+                    };
+                    write!(file, "{}", symbol)?;
+                }
+                writeln!(file)?;
+            }
         }
-        writeln!(file)?;
+        _ => {
+            for y in 0..universe.height {
+                for x in 0..universe.width {
+                    let idx = (y * universe.width + x) as usize;
+                    let symbol = if universe.cells[idx] {
+                        'O'
+                    } else {
+                        '.'
+                    };
+                    write!(file, "{}", symbol)?;
+                }
+                writeln!(file)?;
+            }
+        }
     }
+
     Ok(())
 }
 
 
+
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    if args.len() < 5 {
+        println!("Usage: game_of_life <width> <height> <iterations> <implementation> [seed_file (random if empty)]");
+        std::process::exit(1);
+    }
 
     let width = args[1].parse::<u32>().unwrap();
     let height = args[2].parse::<u32>().unwrap();
@@ -237,7 +278,10 @@ fn main() {
         "naive" => Implementation::Naive,
         "hash" => Implementation::HashSet,
         "parallel" => Implementation::Parallel,
-        _ => std::process::exit(1),
+        _ => {
+            println!("Invalid implementation. Choose from 'naive', 'hash', or 'parallel'.");
+            std::process::exit(1);
+        }
     };
 
     let mut total_iterations = iterations;
