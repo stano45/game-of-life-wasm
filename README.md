@@ -1,29 +1,69 @@
-# Game of Life (Web-Assembly)
+# Game of Rust
 
-This project is a Rust implementation of Conway's Game of Life, compiled to WebAssembly.
+Rust implementation of [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life). This implementation provides three different approaches for calculating the next generation of cells: Naive, HashSet-based, and Parallel. The Hash-Set implementation is not super efficient though.
 
-## Prerequisites
+## Getting Started
 
-- Rust and Cargo: You can download these from the [official site](https://www.rust-lang.org/tools/install).
-- wasm-pack: This is a tool for assembling and packaging Rust crates that target WebAssembly. Install it with `cargo install wasm-pack`.
+To run the Game of Life, follow these steps:
 
-## Building the Project
+1. Clone the repository to your local machine:
 
-1. Navigate to the project directory.
-2. Run `wasm-pack build --target web` to compile the Rust code into WebAssembly.
+   ```bash
+   git clone https://github.com/stano45/game-of-rust.git
+   ```
 
-## Hosting the App
+2. Navigate to the project directory:
 
-After building the project, the `pkg/` directory will contain the compiled WebAssembly code. You can use a simple HTTP server to serve the static files.
+   ```bash
+   cd game-of-rust
+   ```
 
-1. Install a static server like `basic-http-server` with `cargo install basic-http-server`.
-2. Run `basic-http-server` to start the server (This will serve the `index.html` file in the project root).
-3. Open your web browser and navigate to `localhost:4000` (or the port number displayed in your terminal).
+3. Build the project using `cargo`:
+
+   ```bash
+   cargo build --release
+   ```
+
+4. Run the game with the desired parameters. You can specify the width, height, number of iterations, and implementation type:
+
+   ```bash
+   cargo run --release -- <width> <height> <iterations> <implementation> [seed_file]
+   ```
+
+   Replace `<width>`, `<height>`, `<iterations>`, and `<implementation>` with your preferred values. The `seed_file` argument is optional, and if not provided, the initial state will be generated randomly.
+
+5. After running the game, it will display the progress and write the final state to a text file.
+
+## Implementation Options
+
+This implementation provides three different approaches for calculating the next generation of cells:
+
+- **Naive**: Uses a straightforward nested loop approach to update the cell grid.
+- **HashSet-based**: Utilizes a HashSet to optimize neighbor calculations and updates.
+- **Parallel**: Parallelizes the computation using the Rayon library for improved performance.
+
+## Example Usage
+
+Here's an example of how to run the game:
+
+```bash
+cargo run --release -- 50 30 100 hash seed.txt
+```
+
+In this example, the game will simulate a 50x30 grid for 100 iterations using the HashSet-based implementation. If a seed file (`seed.txt`) is provided, it will use that as the initial state; otherwise, it will generate a random initial state.
+
+The seed file should contain a grid of cells, where `.` represents a dead cell and `O` represents a live cell. The grid should be the same size as the specified width and height.
+
+## Saving the Final State
+
+The final state of the simulation will be saved to a text file in the current directory. The filename will include the width, height, and total number of iterations, making it easy to identify different simulations.
+
+The first line of the file will contain the width and height, and the iteration index, and the subsequent lines will contain the final state of the grid.
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+If you'd like to contribute to this project, feel free to fork the repository, make your changes, and submit a pull request. Bug reports, suggestions, and improvements are welcome.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
